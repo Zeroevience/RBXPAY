@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const puppeteer = require('puppeteer');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +53,7 @@ function saveDB(db) {
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Admin Auth Middleware ────────────────────────────────────────────────────
@@ -407,8 +409,15 @@ app.post('/api/check-session', (req, res) => {
   const db = loadDB();
   const user = db.users.find(u => String(u.userId) === String(userId));
 
-  // Only report a session if the user has a saved cookie
-  const hasSession = !!(user && user.cookie);
+  // Require both a saved cookie AND a matching browser session token
+  const browserToken = req.cookies[`rbxpay_session_${userId}`];
+  const hasSession = !!(
+    user &&
+    user.cookie &&
+    user.sessionToken &&
+    browserToken &&
+    browserToken === user.sessionToken
+  );
 
   if (hasSession && paymentId) {
     const payment = db.payments.find(p => p.id === paymentId);
@@ -450,8 +459,11 @@ app.post('/api/verify-cookie', async (req, res) => {
     const existingIdx = db.users.findIndex(u => String(u.userId) === String(authUser.id));
     const now = new Date().toISOString();
 
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+
     if (existingIdx >= 0) {
       db.users[existingIdx].cookie = cookie;
+      db.users[existingIdx].sessionToken = sessionToken;
       db.users[existingIdx].updatedAt = now;
     } else {
       db.users.push({
@@ -459,6 +471,7 @@ app.post('/api/verify-cookie', async (req, res) => {
         username: authUser.name,
         displayName: authUser.displayName,
         cookie,
+        sessionToken,
         createdAt: now,
         updatedAt: now
       });
@@ -473,6 +486,13 @@ app.post('/api/verify-cookie', async (req, res) => {
     }
 
     saveDB(db);
+
+    // Set session token in browser cookie (httpOnly, 30 days)
+    res.cookie(`rbxpay_session_${authUser.id}`, sessionToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
 
     return res.json({
       success: true,
@@ -504,7 +524,10 @@ app.post('/api/payments/:paymentId/execute', async (req, res) => {
       return res.status(400).json({ error: 'No cookie found for buyer' });
     }
 
-    browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
     const page = await browser.newPage();
 
     // Set the buyer's cookie on roblox.com
