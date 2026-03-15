@@ -1,0 +1,11 @@
+pyotp
+playwright
+aiohttp
+flask
+flask-socketio
+flask-cors
+requests
+simple-websocket
+gevent
+gevent-websocket
+bitcoinlib

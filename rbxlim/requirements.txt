@@ -1,0 +1,9 @@
+flask
+flask-socketio
+flask-cors
+hdwallet
+mnemonic
+requests
+simple-websocket
+gevent
+gevent-websocket
